@@ -12,6 +12,7 @@ SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_SERVICE_KEY else supabase
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -32,12 +33,28 @@ def login():
             session["user_id"] = res.user.id
             session["email"] = res.user.email
             session["access_token"] = res.session.access_token
-            profile = supabase.table("profiles").select("*").eq("user_id", res.user.id).single().execute()
+
+            profile = supabase.table("profiles").select("*").eq("user_id", res.user.id).maybe_single().execute()
             if profile.data:
                 session["name"] = profile.data.get("name", email)
                 session["partner_id"] = profile.data.get("partner_id", "")
                 session["city"] = profile.data.get("city", "")
                 session["timezone"] = profile.data.get("timezone", "Asia/Jakarta")
+            else:
+                # Profile belum ada (email confirmation baru selesai) — buat sekarang
+                pending = session.get("pending_profile", {})
+                supabase_admin.table("profiles").insert({
+                    "user_id": res.user.id,
+                    "name": pending.get("name", email),
+                    "city": pending.get("city", ""),
+                    "timezone": pending.get("timezone", "Asia/Jakarta"),
+                    "email": email
+                }).execute()
+                session["name"] = pending.get("name", email)
+                session["city"] = pending.get("city", "")
+                session["timezone"] = pending.get("timezone", "Asia/Jakarta")
+                session.pop("pending_profile", None)
+
             return jsonify({"success": True})
         except Exception as e:
             return jsonify({"success": False, "error": str(e)})
@@ -54,14 +71,13 @@ def register():
         timezone_val = data.get("timezone", "Asia/Jakarta")
         try:
             res = supabase.auth.sign_up({"email": email, "password": password})
-            user_id = res.user.id
-            supabase.table("profiles").insert({
-                "user_id": user_id,
+            # Simpan data profile di session, insert saat login pertama
+            session["pending_profile"] = {
                 "name": name,
                 "city": city,
                 "timezone": timezone_val,
                 "email": email
-            }).execute()
+            }
             return jsonify({"success": True})
         except Exception as e:
             return jsonify({"success": False, "error": str(e)})
