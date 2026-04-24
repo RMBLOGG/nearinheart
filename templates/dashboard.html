@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+{% block title %}Beranda — Dekat di Hati{% endblock %}
+
+{% block head %}
+<style>
+.dashboard { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* ── Hero countdown ── */
+.countdown-hero {
+  background: linear-gradient(135deg, var(--wine) 0%, #3d1525 60%, #5a1f30 100%);
+  border-radius: 28px;
+  padding: 2.5rem 3rem;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 12px 48px rgba(107,45,62,0.25);
+}
+.countdown-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 80% 50%, rgba(201,116,122,0.2) 0%, transparent 60%);
+}
+.countdown-hero::after {
+  content: '💌';
+  position: absolute; right: 2rem; top: 50%; transform: translateY(-50%);
+  font-size: 5rem; opacity: 0.08;
+}
+.countdown-label {
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: 0.9rem; color: rgba(245,230,211,0.7);
+  margin-bottom: 0.5rem; position: relative; z-index: 1;
+}
+.countdown-main {
+  display: flex; align-items: baseline; gap: 0.5rem;
+  position: relative; z-index: 1; margin-bottom: 0.4rem;
+}
+.countdown-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 4.5rem; font-weight: 600; color: #f2c4c4;
+  line-height: 1;
+}
+.countdown-unit { font-size: 1.1rem; color: rgba(245,230,211,0.6); font-weight: 300; }
+.countdown-date-text {
+  font-size: 0.82rem; color: rgba(245,230,211,0.55);
+  font-family: 'Lora', serif; font-style: italic;
+  position: relative; z-index: 1;
+}
+.countdown-units {
+  display: flex; gap: 1rem; margin-top: 1rem; position: relative; z-index: 1;
+}
+.cu-box {
+  text-align: center; background: rgba(255,255,255,0.08); border-radius: 12px;
+  padding: 0.7rem 1.2rem; min-width: 70px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.cu-num { font-family: 'Playfair Display', serif; font-size: 1.8rem; color: #f2c4c4; }
+.cu-lbl { font-size: 0.65rem; color: rgba(245,230,211,0.5); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 0.15rem; }
+.set-countdown-btn {
+  position: absolute; top: 1.2rem; right: 1.2rem; z-index: 2;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(245,230,211,0.8); padding: 0.35rem 0.85rem;
+  border-radius: 50px; font-size: 0.75rem; cursor: pointer; font-family: 'Nunito', sans-serif;
+  transition: all 0.2s;
+}
+.set-countdown-btn:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Grid ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.2rem; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; margin-bottom: 1.2rem; }
+
+/* ── Clock card ── */
+.clock-card { text-align: center; }
+.clock-city { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
+.clock-time { font-family: 'Playfair Display', serif; font-size: 2.2rem; color: var(--wine); letter-spacing: 0.04em; }
+.clock-date { font-size: 0.75rem; color: var(--muted); font-family: 'Lora', serif; font-style: italic; margin-top: 0.2rem; }
+.clock-divider { font-size: 1.3rem; color: var(--rose-light); align-self: center; text-align: center; padding-top: 0.3rem; }
+.distance-badge {
+  text-align: center; margin-top: 0.8rem;
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: 0.82rem; color: var(--muted);
+}
+.distance-badge strong { color: var(--rose-deep); font-size: 1.1rem; font-style: normal; font-family: 'Playfair Display', serif; }
+
+/* ── Mood ── */
+.mood-grid { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.8rem 0; }
+.mood-btn {
+  padding: 0.5rem 1rem; border-radius: 50px;
+  border: 1.5px solid rgba(201,116,122,0.2);
+  background: rgba(255,255,255,0.6);
+  cursor: pointer; font-size: 0.82rem; font-family: 'Nunito', sans-serif;
+  color: var(--ink); transition: all 0.2s;
+}
+.mood-btn:hover, .mood-btn.active { background: var(--rose); color: white; border-color: var(--rose); }
+.partner-mood {
+  margin-top: 0.8rem; padding: 0.7rem 1rem;
+  background: rgba(201,116,122,0.06); border-radius: 12px;
+  font-size: 0.83rem; color: var(--muted); font-family: 'Lora', serif; font-style: italic;
+  border-left: 3px solid var(--rose-light);
+}
+
+/* ── Status ── */
+.status-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.8rem 0; }
+.status-chip {
+  padding: 0.4rem 0.9rem; border-radius: 50px;
+  border: 1.5px solid rgba(201,116,122,0.2);
+  background: rgba(255,255,255,0.6); cursor: pointer;
+  font-size: 0.8rem; font-family: 'Nunito', sans-serif; color: var(--ink);
+  transition: all 0.2s;
+}
+.status-chip:hover, .status-chip.active { background: var(--rose-deep); color: white; border-color: var(--rose-deep); }
+.partner-status-box {
+  margin-top: 0.9rem; padding: 0.8rem 1rem;
+  background: rgba(107,45,62,0.04); border-radius: 12px;
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.partner-dot { width: 8px; height: 8px; background: var(--rose); border-radius: 50%; flex-shrink: 0; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
+.partner-status-text { font-size: 0.82rem; color: var(--muted); font-family: 'Lora', serif; font-style: italic; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(44,26,26,0.45);
+  backdrop-filter: blur(4px); z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--cream); border-radius: 24px; padding: 2rem;
+  width: 90%; max-width: 420px;
+  box-shadow: 0 20px 60px rgba(44,26,26,0.2);
+  transform: translateY(20px); transition: transform 0.3s;
+}
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.modal-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--wine); margin-bottom: 0.25rem; }
+.modal-sub { font-size: 0.8rem; color: var(--muted); font-family: 'Lora', serif; font-style: italic; margin-bottom: 1.2rem; }
+.modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1rem; }
+
+@media(max-width:700px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .countdown-num { font-size: 3rem; }
+  .countdown-units { gap: 0.5rem; }
+  .cu-box { min-width: 55px; padding: 0.5rem 0.7rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard stagger">
+
+  <!-- Countdown hero -->
+  <div class="countdown-hero fade-in" id="countdownHero">
+    <button class="set-countdown-btn" onclick="openCountdownModal()">✏️ Atur Tanggal</button>
+    <p class="countdown-label" id="cdLabel">Menghitung hari...</p>
+    <div class="countdown-main">
+      <span class="countdown-num" id="cdDays">—</span>
+      <span class="countdown-unit">hari lagi</span>
+    </div>
+    <p class="countdown-date-text" id="cdDateText">sampai kita bertemu 🥺</p>
+    <div class="countdown-units">
+      <div class="cu-box"><div class="cu-num" id="cuH">00</div><div class="cu-lbl">Jam</div></div>
+      <div class="cu-box"><div class="cu-num" id="cuM">00</div><div class="cu-lbl">Menit</div></div>
+      <div class="cu-box"><div class="cu-num" id="cuS">00</div><div class="cu-lbl">Detik</div></div>
+    </div>
+  </div>
+
+  <!-- Clocks + Distance -->
+  <div class="grid-2">
+    <div class="card" id="clockCard">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+        <div class="clock-card">
+          <div class="clock-city" id="myCity">Kamu</div>
+          <div class="clock-time" id="myClock">--:--</div>
+          <div class="clock-date" id="myDate">—</div>
+        </div>
+        <div class="clock-divider">💕</div>
+        <div class="clock-card">
+          <div class="clock-city" id="partnerCity">Dia</div>
+          <div class="clock-time" id="partnerClock">--:--</div>
+          <div class="clock-date" id="partnerDate">—</div>
+        </div>
+      </div>
+      <div class="distance-badge" id="distanceBadge">
+        <strong id="distNum">—</strong> km memisahkan kita
+      </div>
+    </div>
+
+    <!-- Mood -->
+    <div class="card">
+      <div class="section-title" style="font-size:1.1rem">Mood Kamu Hari Ini 🌸</div>
+      <div class="mood-grid" id="moodGrid">
+        <button class="mood-btn" onclick="setMood(this,'😊 Senang')">😊 Senang</button>
+        <button class="mood-btn" onclick="setMood(this,'🥺 Kangen')">🥺 Kangen</button>
+        <button class="mood-btn" onclick="setMood(this,'😔 Sedih')">😔 Sedih</button>
+        <button class="mood-btn" onclick="setMood(this,'😴 Capek')">😴 Capek</button>
+        <button class="mood-btn" onclick="setMood(this,'💕 Rindu Parah')">💕 Rindu Parah</button>
+        <button class="mood-btn" onclick="setMood(this,'🎉 Excited')">🎉 Excited</button>
+      </div>
+      <div class="partner-mood" id="partnerMoodBox" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Status + Quick links -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-title" style="font-size:1.1rem">Lagi Ngapain? 💬</div>
+      <div class="status-chips">
+        <button class="status-chip" onclick="setStatus(this,'🍽️ Lagi makan')">🍽️ Makan</button>
+        <button class="status-chip" onclick="setStatus(this,'😴 Mau tidur')">😴 Mau tidur</button>
+        <button class="status-chip" onclick="setStatus(this,'📚 Belajar/Kerja')">📚 Kerja</button>
+        <button class="status-chip" onclick="setStatus(this,'🛁 Mandi dulu')">🛁 Mandi</button>
+        <button class="status-chip" onclick="setStatus(this,'💕 Kangen kamu')">💕 Kangen</button>
+        <button class="status-chip" onclick="setStatus(this,'🚶 Lagi di luar')">🚶 Di luar</button>
+        <button class="status-chip" onclick="setStatus(this,'📱 Online nih')">📱 Online</button>
+        <button class="status-chip" onclick="setStatus(this,'😪 Ngantuk')">😪 Ngantuk</button>
+      </div>
+      <div class="partner-status-box" id="partnerStatusBox" style="display:none">
+        <div class="partner-dot"></div>
+        <span class="partner-status-text" id="partnerStatusText"></span>
+      </div>
+    </div>
+
+    <div class="card" style="display:flex;flex-direction:column;gap:0.8rem;justify-content:center">
+      <a href="/letters" style="text-decoration:none">
+        <div class="card" style="padding:1rem 1.2rem;margin:0;display:flex;align-items:center;gap:0.8rem;cursor:pointer">
+          <span style="font-size:1.5rem">✉️</span>
+          <div><div style="font-weight:600;color:var(--wine);font-size:0.9rem">Love Letter Box</div><div style="font-size:0.75rem;color:var(--muted)">Tulis surat rahasia</div></div>
+        </div>
+      </a>
+      <a href="/journal" style="text-decoration:none">
+        <div class="card" style="padding:1rem 1.2rem;margin:0;display:flex;align-items:center;gap:0.8rem;cursor:pointer">
+          <span style="font-size:1.5rem">📖</span>
+          <div><div style="font-weight:600;color:var(--wine);font-size:0.9rem">Diary Berdua</div><div style="font-size:0.75rem;color:var(--muted)">Cerita hari ini</div></div>
+        </div>
+      </a>
+      <a href="/memories" style="text-decoration:none">
+        <div class="card" style="padding:1rem 1.2rem;margin:0;display:flex;align-items:center;gap:0.8rem;cursor:pointer">
+          <span style="font-size:1.5rem">📸</span>
+          <div><div style="font-weight:600;color:var(--wine);font-size:0.9rem">Memory Board</div><div style="font-size:0.75rem;color:var(--muted)">Koleksi kenangan</div></div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<!-- Countdown modal -->
+<div class="modal-overlay" id="cdModal">
+  <div class="modal-box">
+    <div class="modal-title">Atur Tanggal Ketemu 🗓️</div>
+    <p class="modal-sub">Set countdown ke hari yang paling ditunggu</p>
+    <div class="form-group">
+      <label class="form-label">Tanggal & Waktu Ketemu</label>
+      <input type="datetime-local" id="cdInput" class="input"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Label (opsional)</label>
+      <input type="text" id="cdLabelInput" class="input" placeholder="Contoh: Mudik lebaran 🥺"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('cdModal')">Batal</button>
+      <button class="btn btn-rose" onclick="saveCountdown()">Simpan 💕</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let dashData = {};
+let myTz = 'Asia/Jakarta', partnerTz = 'Asia/Jakarta';
+
+async function loadDashboard() {
+  const d = await api('/api/dashboard');
+  dashData = d;
+  myTz = d.my_timezone || 'Asia/Jakarta';
+  partnerTz = d.couple?.partner_timezone || 'Asia/Jakarta';
+
+  // City labels
+  document.getElementById('myCity').textContent = d.my_city || 'Kamu';
+  document.getElementById('partnerCity').textContent = d.couple?.partner_city || 'Dia';
+
+  // Distance
+  const km = d.couple?.distance_km;
+  document.getElementById('distNum').textContent = km ? Number(km).toLocaleString('id') : '—';
+
+  // Partner mood
+  if(d.partner_mood) {
+    const pmBox = document.getElementById('partnerMoodBox');
+    const pName = d.partner_profile?.name || 'Dia';
+    pmBox.style.display = 'block';
+    pmBox.textContent = `${pName} lagi ngerasa ${d.partner_mood.mood} hari ini 🥹`;
+    if(d.partner_mood.note) pmBox.textContent += ` — "${d.partner_mood.note}"`;
+  }
+
+  // My mood highlight
+  if(d.mood_me) {
+    document.querySelectorAll('.mood-btn').forEach(b => {
+      if(b.textContent.trim() === d.mood_me.mood) b.classList.add('active');
+    });
+  }
+
+  // Partner status
+  if(d.partner_status) {
+    const sb = document.getElementById('partnerStatusBox');
+    const pName = d.partner_profile?.name || 'Dia';
+    sb.style.display = 'flex';
+    document.getElementById('partnerStatusText').textContent =
+      `${pName}: ${d.partner_status.status}`;
+  }
+
+  // My status highlight
+  if(d.my_status) {
+    document.querySelectorAll('.status-chip').forEach(b => {
+      if(b.getAttribute('onclick')?.includes(d.my_status.status)) b.classList.add('active');
+    });
+  }
+
+  // Load saved countdown
+  const savedCd = localStorage.getItem('ldr_meet_date');
+  const savedLabel = localStorage.getItem('ldr_meet_label') || 'Ketemu kamu';
+  if(savedCd) startCountdown(savedCd, savedLabel);
+  else if(d.couple?.meet_date) startCountdown(d.couple.meet_date, 'Ketemu kamu');
+}
+
+function startCountdown(dateStr, label) {
+  document.getElementById('cdLabel').textContent = label + ' dalam...';
+  function tick() {
+    const now = new Date();
+    const target = new Date(dateStr);
+    const diff = target - now;
+    if(diff <= 0) {
+      document.getElementById('cdDays').textContent = '🎉';
+      document.getElementById('cdDateText').textContent = 'Hari ini kita ketemu!! 🎊';
+      document.getElementById('cuH').textContent = '00';
+      document.getElementById('cuM').textContent = '00';
+      document.getElementById('cuS').textContent = '00';
+      return;
+    }
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cdDays').textContent = days;
+    document.getElementById('cdDateText').textContent =
+      `${target.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} 🥺`;
+    document.getElementById('cuH').textContent = String(hours).padStart(2,'0');
+    document.getElementById('cuM').textContent = String(mins).padStart(2,'0');
+    document.getElementById('cuS').textContent = String(secs).padStart(2,'0');
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+function updateClocks() {
+  const now = new Date();
+  function fmt(tz) {
+    return now.toLocaleTimeString('id-ID',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+  function fmtDate(tz) {
+    return now.toLocaleDateString('id-ID',{timeZone:tz,weekday:'short',day:'numeric',month:'short'});
+  }
+  document.getElementById('myClock').textContent = fmt(myTz);
+  document.getElementById('myDate').textContent = fmtDate(myTz);
+  document.getElementById('partnerClock').textContent = fmt(partnerTz);
+  document.getElementById('partnerDate').textContent = fmtDate(partnerTz);
+}
+
+async function setMood(btn, mood) {
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  await api('/api/mood','POST',{mood});
+  showToast('Mood kamu tersimpan 🌸');
+}
+
+async function setStatus(btn, status) {
+  document.querySelectorAll('.status-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  await api('/api/status','POST',{status});
+  showToast('Status diperbarui 💬');
+}
+
+function openCountdownModal() {
+  const saved = localStorage.getItem('ldr_meet_date');
+  if(saved) document.getElementById('cdInput').value = saved.slice(0,16);
+  document.getElementById('cdLabelInput').value = localStorage.getItem('ldr_meet_label')||'';
+  document.getElementById('cdModal').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function saveCountdown() {
+  const val = document.getElementById('cdInput').value;
+  const label = document.getElementById('cdLabelInput').value || 'Ketemu kamu';
+  if(!val) { showToast('Pilih tanggal dulu 🥺'); return; }
+  localStorage.setItem('ldr_meet_date', val);
+  localStorage.setItem('ldr_meet_label', label);
+  closeModal('cdModal');
+  startCountdown(val, label);
+  showToast('Countdown diset! 💕 ' + label);
+}
+
+// Close modal on overlay click
+document.getElementById('cdModal').addEventListener('click', function(e) {
+  if(e.target === this) closeModal('cdModal');
+});
+
+loadDashboard();
+updateClocks();
+setInterval(updateClocks, 1000);
+</script>
+{% endblock %}

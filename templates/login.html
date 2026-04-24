@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Masuk — Dekat di Hati</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=Lora:ital,wght@0,400;1,400&family=Nunito:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cream: #fdf6ee; --rose: #c9747a; --rose-deep: #a85560; --wine: #6b2d3e;
+      --ink: #2c1a1a; --muted: #8a6a6a; --gold: #c9a84c;
+    }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--cream);
+      min-height: 100vh;
+      display: flex;
+      background-image:
+        radial-gradient(ellipse at 15% 85%, rgba(201,116,122,0.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 15%, rgba(201,168,76,0.08) 0%, transparent 40%);
+    }
+    .split { display: flex; width: 100%; }
+    .left-panel {
+      flex: 1;
+      background: linear-gradient(160deg, var(--wine) 0%, #3d1525 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .left-panel::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 3.5L23.09 13H33L25.45 18.91L28.55 28.41L20 22.5L11.45 28.41L14.55 18.91L7 13H16.91Z' fill='%23c9747a' fill-opacity='0.06'/%3E%3C/svg%3E");
+    }
+    .left-panel .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.8rem;
+      color: #f5e6d3;
+      font-style: italic;
+      text-align: center;
+      z-index: 1;
+      line-height: 1.2;
+    }
+    .left-panel .logo span { color: #f2c4c4; }
+    .left-panel .tagline {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      color: rgba(245,230,211,0.65);
+      font-size: 0.95rem;
+      text-align: center;
+      margin-top: 1rem;
+      z-index: 1;
+      max-width: 260px;
+      line-height: 1.7;
+    }
+    .hearts {
+      position: absolute; font-size: 2rem; opacity: 0.07;
+      z-index: 0;
+    }
+    .right-panel {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 3rem;
+    }
+    .auth-box { width: 100%; max-width: 380px; }
+    .auth-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      color: var(--wine);
+      margin-bottom: 0.3rem;
+    }
+    .auth-sub {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-bottom: 2rem;
+    }
+    .form-group { margin-bottom: 1.1rem; }
+    .form-label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 0.4rem; }
+    .input {
+      width: 100%; padding: 0.75rem 1rem;
+      border: 1.5px solid rgba(201,116,122,0.25);
+      border-radius: 12px; font-family: 'Nunito', sans-serif;
+      font-size: 0.9rem; background: rgba(255,255,255,0.8); color: var(--ink);
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(201,116,122,0.12); }
+    .btn-submit {
+      width: 100%; padding: 0.85rem;
+      background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+      color: white; border: none; border-radius: 50px;
+      font-family: 'Nunito', sans-serif; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.04em;
+      box-shadow: 0 4px 18px rgba(168,85,96,0.35);
+      transition: all 0.2s; margin-top: 0.5rem;
+    }
+    .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(168,85,96,0.45); }
+    .switch-link { text-align: center; margin-top: 1.4rem; font-size: 0.83rem; color: var(--muted); }
+    .switch-link a { color: var(--rose-deep); font-weight: 600; text-decoration: none; }
+    .switch-link a:hover { text-decoration: underline; }
+    .error-msg { color: #c0392b; font-size: 0.8rem; margin-top: 0.5rem; display: none; }
+    @media(max-width: 700px) {
+      .left-panel { display: none; }
+      .right-panel { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="split">
+  <div class="left-panel">
+    <div class="hearts" style="top:10%;left:10%">💗</div>
+    <div class="hearts" style="bottom:15%;right:12%;font-size:3rem">🌹</div>
+    <div class="hearts" style="top:40%;right:8%;font-size:1.5rem">✨</div>
+    <div class="logo">Dekat di <span>Hati</span><br/>💌</div>
+    <p class="tagline">"Jarak hanyalah angka, cinta yang menyatukan."</p>
+  </div>
+  <div class="right-panel">
+    <div class="auth-box">
+      <h1 class="auth-title">Selamat datang 💕</h1>
+      <p class="auth-sub">Masuk ke ruang cinta kalian</p>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="email" class="input" placeholder="kamu@email.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="password" class="input" placeholder="••••••••"/>
+      </div>
+      <p class="error-msg" id="err"></p>
+      <button class="btn-submit" onclick="doLogin()">Masuk ✨</button>
+      <p class="switch-link">Belum punya akun? <a href="/register">Daftar sekarang</a></p>
+    </div>
+  </div>
+</div>
+<script>
+  async function doLogin() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const err = document.getElementById('err');
+    err.style.display = 'none';
+    if(!email || !password) { err.textContent='Isi semua kolom ya 🥺'; err.style.display='block'; return; }
+    const res = await fetch('/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password})
+    });
+    const data = await res.json();
+    if(data.success) window.location.href='/';
+    else { err.textContent = 'Email atau password salah 😢'; err.style.display='block'; }
+  }
+  document.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>

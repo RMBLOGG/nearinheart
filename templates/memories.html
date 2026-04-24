@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Kenangan — Dekat di Hati{% endblock %}
+{% block head %}
+<style>
+.memories-wrap { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.mem-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem; }
+.mem-card { background: rgba(255,255,255,0.8); border-radius: 18px; overflow: hidden; border: 1px solid rgba(201,116,122,0.12); box-shadow: 0 2px 16px rgba(107,45,62,0.06); transition: all 0.3s; }
+.mem-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(107,45,62,0.14); }
+.mem-img { width: 100%; height: 220px; object-fit: cover; }
+.mem-img-placeholder { width: 100%; height: 220px; background: linear-gradient(135deg, var(--parchment), var(--rose-light)); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+.mem-body { padding: 1rem 1.2rem; }
+.mem-caption { font-family: 'Lora', serif; font-size: 0.88rem; color: var(--ink); line-height: 1.6; margin-bottom: 0.4rem; }
+.mem-meta { font-size: 0.72rem; color: var(--muted); font-family: 'Lora', serif; font-style: italic; }
+.mem-author { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--rose); margin-bottom: 0.3rem; }
+.write-btn { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; border: none; border-radius: 50px; padding: 0.85rem 1.6rem; font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; box-shadow: 0 6px 24px rgba(168,85,96,0.4); z-index: 50; transition: all 0.2s; }
+.write-btn:hover { transform: translateY(-2px); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(44,26,26,0.45); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box { background: var(--cream); border-radius: 24px; padding: 2rem; width: 90%; max-width: 480px; box-shadow: 0 20px 60px rgba(44,26,26,0.2); transform: translateY(20px); transition: transform 0.3s; }
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+.empty-state .big { font-size: 3rem; margin-bottom: 1rem; }
+.empty-state p { font-family: 'Lora', serif; font-style: italic; }
+.img-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px; margin-top: 0.5rem; display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="memories-wrap fade-in">
+  <div class="section-title">Memory Board 📸</div>
+  <p class="section-sub">Setiap foto menyimpan senyum dan rindu yang tak terhitung</p>
+  <div class="mem-grid stagger" id="memGrid"></div>
+</div>
+
+<button class="write-btn" onclick="openModal()">📸 Tambah Kenangan</button>
+
+<div class="modal-overlay" id="addModal">
+  <div class="modal-box">
+    <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--wine);margin-bottom:0.25rem">Tambah Kenangan 📸</div>
+    <p style="font-size:0.8rem;color:var(--muted);font-family:'Lora',serif;font-style:italic;margin-bottom:1.5rem">Abadikan momen indah kalian</p>
+    <div class="form-group">
+      <label class="form-label">URL Foto</label>
+      <input type="url" id="imgUrl" class="input" placeholder="https://..." oninput="previewImg(this.value)"/>
+      <img id="imgPreview" class="img-preview" alt="preview"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Caption</label>
+      <textarea id="memCaption" class="textarea" style="min-height:90px" placeholder="Momen ini..."></textarea>
+    </div>
+    <div style="display:flex;gap:0.6rem;justify-content:flex-end;margin-top:1rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn btn-rose" onclick="saveMemory()">Simpan 📸</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadMemories() {
+  const d = await api('/api/memories');
+  const grid = document.getElementById('memGrid');
+  if(!d.memories?.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="big">📸</div><p>Belum ada kenangan tersimpan... upload foto pertama kalian 🥺</p></div>';
+    return;
+  }
+  grid.innerHTML = d.memories.map(m => {
+    const date = new Date(m.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+    return `
+    <div class="mem-card">
+      ${m.image_url
+        ? `<img class="mem-img" src="${m.image_url}" alt="${m.caption||''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="mem-img-placeholder" style="display:none">📸</div>`
+        : `<div class="mem-img-placeholder">📸</div>`
+      }
+      <div class="mem-body">
+        <div class="mem-author">🌸 ${m.author_name||'Anonim'}</div>
+        <div class="mem-caption">${m.caption||''}</div>
+        <div class="mem-meta">${date}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function previewImg(url) {
+  const prev = document.getElementById('imgPreview');
+  if(url) { prev.src = url; prev.style.display = 'block'; }
+  else prev.style.display = 'none';
+}
+
+function openModal() { document.getElementById('addModal').classList.add('open'); }
+function closeModal() { document.getElementById('addModal').classList.remove('open'); }
+
+async function saveMemory() {
+  const image_url = document.getElementById('imgUrl').value;
+  const caption = document.getElementById('memCaption').value;
+  if(!caption && !image_url) { showToast('Isi caption atau URL foto dulu 🥺'); return; }
+  const res = await api('/api/memories','POST',{image_url, caption});
+  if(res.success) {
+    closeModal();
+    document.getElementById('imgUrl').value='';
+    document.getElementById('memCaption').value='';
+    document.getElementById('imgPreview').style.display='none';
+    showToast('Kenangan tersimpan 📸 🌸');
+    loadMemories();
+  }
+}
+
+document.getElementById('addModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+loadMemories();
+</script>
+{% endblock %}

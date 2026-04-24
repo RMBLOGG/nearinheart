@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Love Letters — Dekat di Hati{% endblock %}
+
+{% block head %}
+<style>
+.letters-wrap { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.tabs { display: flex; gap: 0.4rem; margin-bottom: 1.5rem; background: rgba(201,116,122,0.07); border-radius: 50px; padding: 0.3rem; width: fit-content; }
+.tab { padding: 0.5rem 1.4rem; border-radius: 50px; font-size: 0.83rem; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--muted); transition: all 0.2s; font-family: 'Nunito', sans-serif; }
+.tab.active { background: white; color: var(--wine); box-shadow: 0 2px 10px rgba(107,45,62,0.12); }
+
+.letter-card {
+  background: rgba(255,255,255,0.75); border: 1px solid rgba(201,116,122,0.12);
+  border-radius: 18px; padding: 1.5rem; margin-bottom: 1rem;
+  backdrop-filter: blur(8px); transition: all 0.2s; cursor: pointer;
+  box-shadow: 0 2px 16px rgba(107,45,62,0.05);
+}
+.letter-card:hover { box-shadow: 0 6px 28px rgba(107,45,62,0.1); transform: translateY(-1px); }
+.letter-card.locked { opacity: 0.7; cursor: default; }
+.letter-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; color: var(--wine); margin-bottom: 0.3rem; }
+.letter-meta { font-size: 0.75rem; color: var(--muted); font-family: 'Lora', serif; font-style: italic; margin-bottom: 0.6rem; }
+.letter-preview { font-size: 0.85rem; color: var(--muted); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lock-badge { display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(201,168,76,0.15); color: #8a6a30; padding: 0.25rem 0.7rem; border-radius: 50px; font-size: 0.72rem; font-weight: 600; margin-top: 0.5rem; }
+
+.write-btn { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; border: none; border-radius: 50px; padding: 0.85rem 1.6rem; font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; box-shadow: 0 6px 24px rgba(168,85,96,0.4); transition: all 0.2s; z-index: 50; }
+.write-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(168,85,96,0.5); }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(44,26,26,0.45); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box { background: var(--cream); border-radius: 24px; padding: 2rem; width: 90%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(44,26,26,0.2); transform: translateY(20px); transition: transform 0.3s; }
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.modal-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--wine); margin-bottom: 0.25rem; }
+.modal-sub { font-size: 0.8rem; color: var(--muted); font-family: 'Lora', serif; font-style: italic; margin-bottom: 1.5rem; }
+
+.letter-content-full { font-family: 'Lora', serif; font-size: 0.92rem; line-height: 1.9; color: var(--ink); white-space: pre-wrap; padding: 1rem; background: rgba(245,230,211,0.3); border-radius: 12px; margin: 1rem 0; }
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+.empty-state .big { font-size: 3rem; margin-bottom: 1rem; }
+.empty-state p { font-family: 'Lora', serif; font-style: italic; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="letters-wrap fade-in">
+  <div class="section-title">Love Letter Box ✉️</div>
+  <p class="section-sub">Kata-kata yang hanya untuk kalian berdua</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('received',this)">💌 Dari Dia</button>
+    <button class="tab" onclick="switchTab('sent',this)">📤 Suratku</button>
+  </div>
+
+  <div id="receivedList"></div>
+  <div id="sentList" style="display:none"></div>
+</div>
+
+<button class="write-btn" onclick="openWriteModal()">✍️ Tulis Surat</button>
+
+<!-- Write modal -->
+<div class="modal-overlay" id="writeModal">
+  <div class="modal-box">
+    <div class="modal-title">Tulis Surat Cinta ✍️</div>
+    <p class="modal-sub">Kata-katamu akan tersimpan abadi untuknya</p>
+    <div class="form-group">
+      <label class="form-label">Judul Surat</label>
+      <input type="text" id="letterTitle" class="input" placeholder="Untuk kamu yang selalu dirindukan..."/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Isi Surat</label>
+      <textarea id="letterContent" class="textarea" style="min-height:180px" placeholder="Sayang,&#10;&#10;Aku mau bilang..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🔒 Buka Surat Pada (biarkan kosong = langsung terbuka)</label>
+      <input type="datetime-local" id="letterUnlock" class="input"/>
+    </div>
+    <div style="display:flex;gap:0.6rem;justify-content:flex-end;margin-top:1rem">
+      <button class="btn btn-ghost" onclick="closeModal('writeModal')">Batal</button>
+      <button class="btn btn-rose" onclick="sendLetter()">Kirim Surat 💌</button>
+    </div>
+  </div>
+</div>
+
+<!-- Read modal -->
+<div class="modal-overlay" id="readModal">
+  <div class="modal-box">
+    <div class="modal-title" id="readTitle"></div>
+    <div class="modal-sub" id="readMeta"></div>
+    <div class="letter-content-full" id="readContent"></div>
+    <div style="display:flex;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal('readModal')">Tutup 💕</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentTab = 'received';
+let allLetters = {};
+
+async function loadLetters() {
+  allLetters = await api('/api/letters');
+  renderLetters();
+}
+
+function renderLetters() {
+  renderList('receivedList', allLetters.received || []);
+  renderList('sentList', allLetters.sent || [], true);
+}
+
+function renderList(containerId, letters, isSent=false) {
+  const el = document.getElementById(containerId);
+  if(!letters.length) {
+    el.innerHTML = `<div class="empty-state"><div class="big">💌</div><p>${isSent ? 'Belum ada surat yang kamu kirim' : 'Belum ada surat dari dia... minta dia nulis ya 🥺'}</p></div>`;
+    return;
+  }
+  el.innerHTML = letters.map(l => {
+    const locked = l.locked;
+    const date = new Date(l.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+    const unlockDate = l.unlock_at ? new Date(l.unlock_at).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}) : null;
+    return `
+    <div class="letter-card ${locked?'locked':''}" onclick="${locked ? '' : `openLetter('${l.id}')`}">
+      <div class="letter-title">${l.title || 'Surat Untukmu'}</div>
+      <div class="letter-meta">${date}${isSent&&l.recipient_id?' · terkirim':''}${!isSent&&l.sender_name?' · dari '+l.sender_name:''}</div>
+      ${locked
+        ? `<div class="lock-badge">🔒 Terbuka ${unlockDate}</div>`
+        : `<div class="letter-preview">${l.content?.substring(0,120)||''}...</div>`
+      }
+    </div>`;
+  }).join('');
+}
+
+function openLetter(id) {
+  const all = [...(allLetters.received||[]), ...(allLetters.sent||[])];
+  const l = all.find(x => x.id === id);
+  if(!l) return;
+  const date = new Date(l.created_at).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('readTitle').textContent = l.title || 'Surat Untukmu';
+  document.getElementById('readMeta').textContent = date;
+  document.getElementById('readContent').textContent = l.content;
+  document.getElementById('readModal').classList.add('open');
+}
+
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('receivedList').style.display = tab==='received'?'block':'none';
+  document.getElementById('sentList').style.display = tab==='sent'?'block':'none';
+}
+
+function openWriteModal() { document.getElementById('writeModal').classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function sendLetter() {
+  const title = document.getElementById('letterTitle').value;
+  const content = document.getElementById('letterContent').value;
+  const unlock = document.getElementById('letterUnlock').value;
+  if(!content) { showToast('Isi suratnya dulu ya 🥺'); return; }
+  const body = { title: title||'Surat Untukmu', content };
+  if(unlock) body.unlock_at = new Date(unlock).toISOString();
+  const res = await api('/api/letters','POST',body);
+  if(res.success) {
+    closeModal('writeModal');
+    document.getElementById('letterTitle').value='';
+    document.getElementById('letterContent').value='';
+    document.getElementById('letterUnlock').value='';
+    showToast('Surat terkirim 💌 semoga dia suka');
+    loadLetters();
+  }
+}
+
+['writeModal','readModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});
+});
+
+loadLetters();
+</script>
+{% endblock %}

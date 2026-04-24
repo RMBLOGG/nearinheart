@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Dekat di Hati 💌{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=Lora:ital,wght@0,400;0,500;1,400&family=Nunito:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream: #fdf6ee;
+      --parchment: #f5e6d3;
+      --rose-light: #f2c4c4;
+      --rose: #c9747a;
+      --rose-deep: #a85560;
+      --wine: #6b2d3e;
+      --ink: #2c1a1a;
+      --muted: #8a6a6a;
+      --gold: #c9a84c;
+      --gold-light: #e8d5a3;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: var(--cream);
+      color: var(--ink);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(201,116,122,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.05) 0%, transparent 40%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9747a' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    /* ── Petals floating ── */
+    .petal {
+      position: fixed;
+      pointer-events: none;
+      font-size: 1.2rem;
+      opacity: 0;
+      animation: petalFall linear infinite;
+      z-index: 0;
+    }
+    @keyframes petalFall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+      10%  { opacity: 0.6; }
+      90%  { opacity: 0.3; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(253,246,238,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(201,116,122,0.15);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      color: var(--wine);
+      font-style: italic;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+    }
+    .nav-brand span { color: var(--rose); }
+    .nav-links { display: flex; gap: 0.25rem; align-items: center; }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 0.4rem 0.85rem;
+      border-radius: 20px;
+      transition: all 0.2s;
+      letter-spacing: 0.03em;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--wine);
+      background: rgba(201,116,122,0.1);
+    }
+    .nav-logout {
+      font-size: 0.78rem !important;
+      color: var(--muted) !important;
+      opacity: 0.7;
+    }
+
+    /* ── Main wrapper ── */
+    main {
+      padding-top: 80px;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(201,116,122,0.12);
+      border-radius: 20px;
+      padding: 1.8rem;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 24px rgba(107,45,62,0.06);
+      transition: box-shadow 0.3s;
+    }
+    .card:hover { box-shadow: 0 8px 32px rgba(107,45,62,0.1); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.6rem 1.4rem;
+      border-radius: 50px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .btn-rose {
+      background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+      color: white;
+      box-shadow: 0 4px 15px rgba(168,85,96,0.3);
+    }
+    .btn-rose:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(168,85,96,0.4);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--rose);
+      color: var(--rose-deep);
+    }
+    .btn-outline:hover { background: rgba(201,116,122,0.08); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+    }
+    .btn-ghost:hover { color: var(--rose-deep); background: rgba(201,116,122,0.06); }
+
+    /* ── Inputs ── */
+    .input, .textarea, .select {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      border: 1.5px solid rgba(201,116,122,0.25);
+      border-radius: 12px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.88rem;
+      background: rgba(255,255,255,0.8);
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input:focus, .textarea:focus, .select:focus {
+      border-color: var(--rose);
+      box-shadow: 0 0 0 3px rgba(201,116,122,0.1);
+    }
+    .textarea { resize: vertical; min-height: 120px; }
+
+    /* ── Form group ── */
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+    .form-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+    /* ── Section heading ── */
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      color: var(--wine);
+      margin-bottom: 0.3rem;
+    }
+    .section-sub {
+      font-size: 0.83rem;
+      color: var(--muted);
+      font-family: 'Lora', serif;
+      font-style: italic;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: var(--wine); color: white;
+      padding: 0.7rem 1.6rem; border-radius: 50px;
+      font-size: 0.85rem; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      z-index: 9999; transition: transform 0.3s;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--parchment); }
+    ::-webkit-scrollbar-thumb { background: var(--rose-light); border-radius: 3px; }
+
+    /* ── Fade in ── */
+    .fade-in { animation: fadeIn 0.6s ease forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    .stagger > * { animation: fadeIn 0.5s ease forwards; opacity: 0; }
+    .stagger > *:nth-child(1) { animation-delay: 0.1s; }
+    .stagger > *:nth-child(2) { animation-delay: 0.2s; }
+    .stagger > *:nth-child(3) { animation-delay: 0.3s; }
+    .stagger > *:nth-child(4) { animation-delay: 0.4s; }
+    .stagger > *:nth-child(5) { animation-delay: 0.5s; }
+    .stagger > *:nth-child(6) { animation-delay: 0.6s; }
+
+    @media(max-width: 600px) {
+      nav { padding: 0 1rem; }
+      .nav-links a { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+      main { padding-top: 72px; }
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- Floating petals -->
+<div id="petals"></div>
+
+<nav>
+  <a href="/" class="nav-brand">Dekat di <span>Hati</span> 💌</a>
+  {% if session.get('user_id') %}
+  <div class="nav-links">
+    <a href="/" class="{% if request.endpoint == 'index' %}active{% endif %}">🏠 Beranda</a>
+    <a href="/letters" class="{% if request.endpoint == 'letters' %}active{% endif %}">✉️ Surat</a>
+    <a href="/journal" class="{% if request.endpoint == 'journal' %}active{% endif %}">📖 Diary</a>
+    <a href="/memories" class="{% if request.endpoint == 'memories' %}active{% endif %}">📸 Kenangan</a>
+    <a href="/settings" class="{% if request.endpoint == 'settings' %}active{% endif %}">⚙️</a>
+    <a href="/logout" class="nav-logout">Keluar</a>
+  </div>
+  {% endif %}
+</nav>
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<div id="toast"></div>
+
+<script>
+  // Floating petals
+  const petals = ['🌸','🌹','💮','🌺','🍂'];
+  const container = document.getElementById('petals');
+  for(let i = 0; i < 8; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    p.textContent = petals[Math.floor(Math.random()*petals.length)];
+    p.style.left = Math.random()*100 + 'vw';
+    p.style.animationDuration = (12 + Math.random()*18) + 's';
+    p.style.animationDelay = (Math.random()*15) + 's';
+    p.style.fontSize = (0.7 + Math.random()*0.8) + 'rem';
+    container.appendChild(p);
+  }
+
+  // Toast
+  function showToast(msg, duration=2800) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  // Fetch helper
+  async function api(url, method='GET', body=null) {
+    const opts = { method, headers: {'Content-Type':'application/json'} };
+    if(body) opts.body = JSON.stringify(body);
+    const r = await fetch(url, opts);
+    return r.json();
+  }
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

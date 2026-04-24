@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Pengaturan — Dekat di Hati{% endblock %}
+{% block head %}
+<style>
+.settings-wrap { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.settings-section { margin-bottom: 2rem; }
+.settings-section-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--wine); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(201,116,122,0.15); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.save-bar { position: sticky; bottom: 1.5rem; display: flex; justify-content: flex-end; }
+@media(max-width:600px) { .grid-2 { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-wrap fade-in">
+  <div class="section-title">Pengaturan ⚙️</div>
+  <p class="section-sub">Sesuaikan ruang cinta kalian</p>
+
+  <div class="settings-section card" style="margin-bottom:1.2rem">
+    <div class="settings-section-title">👤 Profil Kamu</div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Nama</label><input type="text" id="myName" class="input" placeholder="Nama kamu"/></div>
+      <div class="form-group"><label class="form-label">Kota</label><input type="text" id="myCity" class="input" placeholder="Jakarta"/></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Zona Waktu Kamu</label>
+      <select id="myTz" class="select">
+        <option value="Asia/Jakarta">WIB — Jakarta</option>
+        <option value="Asia/Makassar">WITA — Makassar</option>
+        <option value="Asia/Jayapura">WIT — Jayapura</option>
+        <option value="Asia/Singapore">SGT — Singapura</option>
+        <option value="Asia/Kuala_Lumpur">MYT — Kuala Lumpur</option>
+        <option value="Asia/Tokyo">JST — Tokyo</option>
+        <option value="Europe/London">GMT — London</option>
+        <option value="America/New_York">EST — New York</option>
+        <option value="America/Los_Angeles">PST — Los Angeles</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="settings-section card" style="margin-bottom:1.2rem">
+    <div class="settings-section-title">💕 Pasangan & Jarak</div>
+    <div class="form-group">
+      <label class="form-label">Email Pasangan</label>
+      <input type="email" id="partnerEmail" class="input" placeholder="sayang@email.com"/>
+      <div style="font-size:0.74rem;color:var(--muted);margin-top:0.3rem;font-style:italic">Pastikan pasangan sudah punya akun</div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Kota Dia</label><input type="text" id="partnerCity" class="input" placeholder="Bandung"/></div>
+      <div class="form-group"><label class="form-label">Jarak (km)</label><input type="number" id="distKm" class="input" placeholder="847"/></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Zona Waktu Dia</label>
+      <select id="partnerTz" class="select">
+        <option value="Asia/Jakarta">WIB — Jakarta</option>
+        <option value="Asia/Makassar">WITA — Makassar</option>
+        <option value="Asia/Jayapura">WIT — Jayapura</option>
+        <option value="Asia/Singapore">SGT — Singapura</option>
+        <option value="Asia/Kuala_Lumpur">MYT — Kuala Lumpur</option>
+        <option value="Asia/Tokyo">JST — Tokyo</option>
+        <option value="Europe/London">GMT — London</option>
+        <option value="America/New_York">EST — New York</option>
+        <option value="America/Los_Angeles">PST — Los Angeles</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="settings-section card" style="margin-bottom:1.2rem">
+    <div class="settings-section-title">📅 Tanggal Penting</div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Tanggal Ketemu Berikutnya</label><input type="date" id="meetDate" class="input"/></div>
+      <div class="form-group"><label class="form-label">Anniversary</label><input type="date" id="anniversaryDate" class="input"/></div>
+    </div>
+  </div>
+
+  <div class="save-bar">
+    <button class="btn btn-rose" onclick="saveSettings()" style="padding:0.85rem 2.5rem;font-size:0.95rem">Simpan Semua 💕</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadSettings() {
+  const d = await api('/api/settings');
+  const p = d.profile || {};
+  const c = d.couple || {};
+  document.getElementById('myName').value = p.name||'';
+  document.getElementById('myCity').value = p.city||'';
+  document.getElementById('myTz').value = p.timezone||'Asia/Jakarta';
+  document.getElementById('partnerEmail').value = c.partner_email||'';
+  document.getElementById('partnerCity').value = c.partner_city||'';
+  document.getElementById('distKm').value = c.distance_km||'';
+  document.getElementById('partnerTz').value = c.partner_timezone||'Asia/Jakarta';
+  if(c.meet_date) document.getElementById('meetDate').value = c.meet_date;
+  if(c.anniversary_date) document.getElementById('anniversaryDate').value = c.anniversary_date;
+}
+
+async function saveSettings() {
+  const body = {
+    name: document.getElementById('myName').value,
+    city: document.getElementById('myCity').value,
+    timezone: document.getElementById('myTz').value,
+    partner_email: document.getElementById('partnerEmail').value,
+    partner_city: document.getElementById('partnerCity').value,
+    distance_km: parseFloat(document.getElementById('distKm').value)||0,
+    partner_timezone: document.getElementById('partnerTz').value,
+    meet_date: document.getElementById('meetDate').value,
+    anniversary_date: document.getElementById('anniversaryDate').value,
+  };
+  const res = await api('/api/settings','POST',body);
+  if(res.success) showToast('Pengaturan tersimpan 💕');
+  else showToast('Gagal simpan 😢');
+}
+
+loadSettings();
+</script>
+{% endblock %}

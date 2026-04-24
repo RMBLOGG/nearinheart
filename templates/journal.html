@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Diary Berdua — Dekat di Hati{% endblock %}
+{% block head %}
+<style>
+.journal-wrap { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.entry-card { background: rgba(255,255,255,0.75); border: 1px solid rgba(201,116,122,0.12); border-radius: 18px; padding: 1.6rem; margin-bottom: 1.1rem; backdrop-filter: blur(8px); box-shadow: 0 2px 16px rgba(107,45,62,0.05); transition: box-shadow 0.2s; }
+.entry-card:hover { box-shadow: 0 6px 28px rgba(107,45,62,0.1); }
+.entry-author { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--rose); margin-bottom: 0.3rem; }
+.entry-title { font-family: 'Playfair Display', serif; font-size: 1.25rem; color: var(--wine); margin-bottom: 0.4rem; }
+.entry-date { font-family: 'Lora', serif; font-style: italic; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.8rem; }
+.entry-body { font-family: 'Lora', serif; font-size: 0.9rem; line-height: 1.85; color: var(--ink); white-space: pre-wrap; }
+.entry-reactions { display: flex; gap: 0.4rem; margin-top: 1rem; flex-wrap: wrap; align-items: center; }
+.reaction-btn { background: rgba(255,255,255,0.7); border: 1.5px solid rgba(201,116,122,0.18); border-radius: 50px; padding: 0.3rem 0.75rem; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; font-family: 'Nunito', sans-serif; }
+.reaction-btn:hover { background: var(--rose-light); border-color: var(--rose); }
+.reaction-count { font-size: 0.72rem; color: var(--muted); margin-left: 0.3rem; }
+.write-btn { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; border: none; border-radius: 50px; padding: 0.85rem 1.6rem; font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; box-shadow: 0 6px 24px rgba(168,85,96,0.4); transition: all 0.2s; z-index: 50; }
+.write-btn:hover { transform: translateY(-2px); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(44,26,26,0.45); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box { background: var(--cream); border-radius: 24px; padding: 2rem; width: 90%; max-width: 520px; box-shadow: 0 20px 60px rgba(44,26,26,0.2); transform: translateY(20px); transition: transform 0.3s; }
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+.empty-state .big { font-size: 3rem; margin-bottom: 1rem; }
+.empty-state p { font-family: 'Lora', serif; font-style: italic; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="journal-wrap fade-in">
+  <div class="section-title">Diary Berdua 📖</div>
+  <p class="section-sub">Cerita hari-hari yang terpisah jarak, tapi bersatu di sini</p>
+  <div id="entriesList"></div>
+</div>
+
+<button class="write-btn" onclick="openWriteModal()">✏️ Tulis Entri</button>
+
+<div class="modal-overlay" id="writeModal">
+  <div class="modal-box">
+    <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--wine);margin-bottom:0.25rem">Tulis di Diary 📖</div>
+    <p style="font-size:0.8rem;color:var(--muted);font-family:'Lora',serif;font-style:italic;margin-bottom:1.5rem">Ceritakan harimu untuk dia baca</p>
+    <div class="form-group">
+      <label class="form-label">Judul</label>
+      <input type="text" id="jTitle" class="input" placeholder="Hari ini aku..."/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cerita</label>
+      <textarea id="jContent" class="textarea" style="min-height:150px" placeholder="Hari ini aku..."></textarea>
+    </div>
+    <div style="display:flex;gap:0.6rem;justify-content:flex-end;margin-top:1rem">
+      <button class="btn btn-ghost" onclick="closeModal('writeModal')">Batal</button>
+      <button class="btn btn-rose" onclick="saveEntry()">Simpan 📖</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let myId = '';
+const EMOJIS = ['❤️','🥺','😂','💕','🌸','✨'];
+
+async function loadEntries() {
+  const d = await api('/api/journal');
+  myId = d.my_id;
+  const el = document.getElementById('entriesList');
+  if(!d.entries?.length) {
+    el.innerHTML = '<div class="empty-state"><div class="big">📖</div><p>Diary masih kosong... yuk mulai cerita 🥺</p></div>';
+    return;
+  }
+  el.innerHTML = d.entries.map(e => {
+    const isMine = e.user_id === myId;
+    const date = new Date(e.created_at).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long'});
+    const reactions = e.reactions || [];
+    const reactionCount = {};
+    reactions.forEach(r => { reactionCount[r.emoji] = (reactionCount[r.emoji]||0)+1; });
+
+    return `
+    <div class="entry-card">
+      <div class="entry-author">${isMine ? '🌸 Kamu' : '💙 ' + (e.author_name||'Dia')}</div>
+      <div class="entry-title">${e.title||'Tanpa judul'}</div>
+      <div class="entry-date">${date}</div>
+      <div class="entry-body">${e.content||''}</div>
+      <div class="entry-reactions">
+        ${!isMine ? EMOJIS.map(em => `
+          <button class="reaction-btn" onclick="react('${e.id}','${em}')">
+            ${em}<span class="reaction-count">${reactionCount[em]||''}</span>
+          </button>
+        `).join('') : Object.entries(reactionCount).map(([em,cnt]) =>
+          `<span class="reaction-btn" style="cursor:default">${em} ${cnt}</span>`
+        ).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function react(id, emoji) {
+  await api(`/api/journal/${id}/react`,'POST',{emoji});
+  showToast('Reaksi terkirim ' + emoji);
+  loadEntries();
+}
+
+function openWriteModal() { document.getElementById('writeModal').classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function saveEntry() {
+  const title = document.getElementById('jTitle').value;
+  const content = document.getElementById('jContent').value;
+  if(!content) { showToast('Cerita dulu ya 🥺'); return; }
+  const res = await api('/api/journal','POST',{title:title||'Cerita Hari Ini', content});
+  if(res.success) {
+    closeModal('writeModal');
+    document.getElementById('jTitle').value='';
+    document.getElementById('jContent').value='';
+    showToast('Entri tersimpan 📖');
+    loadEntries();
+  }
+}
+
+document.getElementById('writeModal').addEventListener('click',function(e){if(e.target===this)closeModal('writeModal');});
+loadEntries();
+</script>
+{% endblock %}
