@@ -35,7 +35,7 @@ def login():
         username = data.get("username", "").strip().lower()
         password = data.get("password", "")
         try:
-            res = db.table("users").select("*").eq("username", username).execute()
+            res = db.table("app_users").select("*").eq("username", username).execute()
             if not res.data or len(res.data) == 0:
                 return jsonify({"success": False, "error": "Username tidak ditemukan"})
             user = res.data[0]
@@ -66,11 +66,11 @@ def register():
             return jsonify({"success": False, "error": "Password minimal 6 karakter"})
         try:
             # Cek duplikat username
-            existing = db.table("users").select("id").eq("username", username).execute()
+            existing = db.table("app_users").select("id").eq("username", username).execute()
             if existing.data and len(existing.data) > 0:
                 return jsonify({"success": False, "error": "Username sudah dipakai"})
             password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-            db.table("users").insert({
+            db.table("app_users").insert({
                 "id": str(uuid.uuid4()),
                 "username": username,
                 "password_hash": password_hash,
@@ -104,12 +104,12 @@ def api_settings():
     user_id = session["user_id"]
 
     if request.method == "GET":
-        user = db.table("users").select("id,username,name,city,timezone").eq("id", user_id).single().execute()
+        user = db.table("app_users").select("id,username,name,city,timezone").eq("id", user_id).single().execute()
         couple = db.table("couple_settings").select("*").eq("user_id", user_id).maybe_single().execute()
         return jsonify({"profile": user.data or {}, "couple": couple.data or {}})
 
     data = request.get_json()
-    db.table("users").update({
+    db.table("app_users").update({
         "name": data.get("name"),
         "city": data.get("city"),
         "timezone": data.get("timezone"),
@@ -153,7 +153,7 @@ def api_dashboard():
     partner_profile = None
 
     if couple.data and couple.data.get("partner_username"):
-        partner = db.table("users").select("id,name,city,timezone,username").eq("username", couple.data["partner_username"]).maybe_single().execute()
+        partner = db.table("app_users").select("id,name,city,timezone,username").eq("username", couple.data["partner_username"]).maybe_single().execute()
         if partner.data:
             partner_profile = partner.data
             pm = db.table("moods").select("*").eq("user_id", partner.data["id"]).order("created_at", desc=True).limit(1).maybe_single().execute()
@@ -223,7 +223,7 @@ def api_letters_get():
     couple = db.table("couple_settings").select("partner_username").eq("user_id", user_id).maybe_single().execute()
     received = []
     if couple.data and couple.data.get("partner_username"):
-        partner = db.table("users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
+        partner = db.table("app_users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
         if partner.data:
             received_raw = db.table("letters").select("*").eq("sender_id", partner.data["id"]).eq("recipient_id", user_id).order("created_at", desc=True).execute()
             for letter in (received_raw.data or []):
@@ -243,7 +243,7 @@ def api_letters_post():
     couple = db.table("couple_settings").select("partner_username").eq("user_id", user_id).maybe_single().execute()
     recipient_id = None
     if couple.data and couple.data.get("partner_username"):
-        partner = db.table("users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
+        partner = db.table("app_users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
         if partner.data:
             recipient_id = partner.data["id"]
 
@@ -275,7 +275,7 @@ def api_journal_get():
     couple = db.table("couple_settings").select("partner_username").eq("user_id", user_id).maybe_single().execute()
     partner_id = None
     if couple.data and couple.data.get("partner_username"):
-        partner = db.table("users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
+        partner = db.table("app_users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
         if partner.data:
             partner_id = partner.data["id"]
 
@@ -327,7 +327,7 @@ def api_memories_get():
     couple = db.table("couple_settings").select("partner_username").eq("user_id", user_id).maybe_single().execute()
     partner_id = None
     if couple.data and couple.data.get("partner_username"):
-        partner = db.table("users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
+        partner = db.table("app_users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
         if partner.data:
             partner_id = partner.data["id"]
 
