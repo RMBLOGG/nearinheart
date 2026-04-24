@@ -148,7 +148,7 @@
     });
     const data = await res.json();
     if(data.success) window.location.href='/';
-    else { err.textContent = 'Email atau password salah 😢'; err.style.display='block'; }
+    else { err.textContent = data.error || 'Email atau password salah 😢'; err.style.display='block'; }
   }
   document.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 </script>
