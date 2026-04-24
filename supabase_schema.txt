@@ -1,0 +1,115 @@
+-- ============================================================
+-- DEKAT DI HATI — Supabase Schema (RESET & REBUILD)
+-- Jalankan semua ini di Supabase SQL Editor
+-- ============================================================
+
+-- DROP semua tabel lama (urutan penting karena ada foreign key)
+drop table if exists memories cascade;
+drop table if exists journal cascade;
+drop table if exists letters cascade;
+drop table if exists statuses cascade;
+drop table if exists moods cascade;
+drop table if exists couple_settings cascade;
+drop table if exists profiles cascade;
+
+-- ============================================================
+
+-- 1. PROFILES
+create table profiles (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade unique not null,
+  name text,
+  email text,
+  city text,
+  timezone text default 'Asia/Jakarta',
+  partner_id uuid,
+  created_at timestamptz default now()
+);
+alter table profiles enable row level security;
+create policy "profiles_select_all" on profiles for select using (true);
+create policy "profiles_insert_own" on profiles for insert with check (auth.uid() = user_id);
+create policy "profiles_update_own" on profiles for update using (auth.uid() = user_id);
+
+-- 2. COUPLE SETTINGS
+create table couple_settings (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade unique not null,
+  partner_email text,
+  meet_date date,
+  anniversary_date date,
+  distance_km numeric default 0,
+  partner_city text,
+  partner_timezone text default 'Asia/Jakarta',
+  created_at timestamptz default now()
+);
+alter table couple_settings enable row level security;
+create policy "couple_settings_all" on couple_settings for all using (auth.uid() = user_id);
+
+-- 3. MOODS
+create table moods (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  mood text not null,
+  note text,
+  created_at timestamptz default now()
+);
+alter table moods enable row level security;
+create policy "moods_insert_own" on moods for insert with check (auth.uid() = user_id);
+create policy "moods_select_all" on moods for select using (true);
+
+-- 4. STATUSES
+create table statuses (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  status text not null,
+  created_at timestamptz default now()
+);
+alter table statuses enable row level security;
+create policy "statuses_insert_own" on statuses for insert with check (auth.uid() = user_id);
+create policy "statuses_select_all" on statuses for select using (true);
+
+-- 5. LETTERS
+create table letters (
+  id uuid primary key,
+  sender_id uuid references auth.users(id) on delete cascade not null,
+  recipient_id uuid references auth.users(id) on delete set null,
+  title text,
+  content text,
+  unlock_at timestamptz,
+  created_at timestamptz default now()
+);
+alter table letters enable row level security;
+create policy "letters_insert_own" on letters for insert with check (auth.uid() = sender_id);
+create policy "letters_select_own" on letters for select using (auth.uid() = sender_id or auth.uid() = recipient_id);
+
+-- 6. JOURNAL
+create table journal (
+  id uuid primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  author_name text,
+  title text,
+  content text,
+  reactions jsonb default '[]'::jsonb,
+  created_at timestamptz default now()
+);
+alter table journal enable row level security;
+create policy "journal_insert_own" on journal for insert with check (auth.uid() = user_id);
+create policy "journal_select_all" on journal for select using (true);
+create policy "journal_update_all" on journal for update using (true);
+
+-- 7. MEMORIES
+create table memories (
+  id uuid primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  author_name text,
+  image_url text,
+  caption text,
+  created_at timestamptz default now()
+);
+alter table memories enable row level security;
+create policy "memories_insert_own" on memories for insert with check (auth.uid() = user_id);
+create policy "memories_select_all" on memories for select using (true);
+
+-- ============================================================
+-- DONE! Semua tabel sudah siap 💕
+-- ============================================================
