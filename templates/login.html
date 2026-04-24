@@ -122,8 +122,8 @@
       <h1 class="auth-title">Selamat datang 💕</h1>
       <p class="auth-sub">Masuk ke ruang cinta kalian</p>
       <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" id="email" class="input" placeholder="kamu@email.com"/>
+        <label class="form-label">Username</label>
+        <input type="text" id="username" class="input" placeholder="username kamu" autocomplete="username"/>
       </div>
       <div class="form-group">
         <label class="form-label">Password</label>
@@ -137,14 +137,14 @@
 </div>
 <script>
   async function doLogin() {
-    const email = document.getElementById('email').value;
+    const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const err = document.getElementById('err');
     err.style.display = 'none';
-    if(!email || !password) { err.textContent='Isi semua kolom ya 🥺'; err.style.display='block'; return; }
+    if(!username || !password) { err.textContent='Isi semua kolom ya 🥺'; err.style.display='block'; return; }
     const res = await fetch('/login', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email, password})
+      body: JSON.stringify({username, password})
     });
     const data = await res.json();
     if(data.success) window.location.href='/';

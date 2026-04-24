@@ -42,7 +42,7 @@
     <div class="settings-section-title">💕 Pasangan & Jarak</div>
     <div class="form-group">
       <label class="form-label">Email Pasangan</label>
-      <input type="email" id="partnerEmail" class="input" placeholder="sayang@email.com"/>
+      <input type="text" id="partnerEmail" class="input" placeholder="sayang@email.com"/>
       <div style="font-size:0.74rem;color:var(--muted);margin-top:0.3rem;font-style:italic">Pastikan pasangan sudah punya akun</div>
     </div>
     <div class="grid-2">
@@ -88,7 +88,7 @@ async function loadSettings() {
   document.getElementById('myName').value = p.name||'';
   document.getElementById('myCity').value = p.city||'';
   document.getElementById('myTz').value = p.timezone||'Asia/Jakarta';
-  document.getElementById('partnerEmail').value = c.partner_email||'';
+  document.getElementById('partnerEmail').value = c.partner_username||'';
   document.getElementById('partnerCity').value = c.partner_city||'';
   document.getElementById('distKm').value = c.distance_km||'';
   document.getElementById('partnerTz').value = c.partner_timezone||'Asia/Jakarta';
@@ -101,7 +101,7 @@ async function saveSettings() {
     name: document.getElementById('myName').value,
     city: document.getElementById('myCity').value,
     timezone: document.getElementById('myTz').value,
-    partner_email: document.getElementById('partnerEmail').value,
+    partner_username: document.getElementById('partnerEmail').value,
     partner_city: document.getElementById('partnerCity').value,
     distance_km: parseFloat(document.getElementById('distKm').value)||0,
     partner_timezone: document.getElementById('partnerTz').value,
