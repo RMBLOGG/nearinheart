@@ -35,10 +35,10 @@ def login():
         username = data.get("username", "").strip().lower()
         password = data.get("password", "")
         try:
-            res = db.table("users").select("*").eq("username", username).maybe_single().execute()
-            if not res.data:
+            res = db.table("users").select("*").eq("username", username).execute()
+            if not res.data or len(res.data) == 0:
                 return jsonify({"success": False, "error": "Username tidak ditemukan"})
-            user = res.data
+            user = res.data[0]
             if not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
                 return jsonify({"success": False, "error": "Password salah"})
             session["user_id"] = user["id"]
@@ -66,8 +66,8 @@ def register():
             return jsonify({"success": False, "error": "Password minimal 6 karakter"})
         try:
             # Cek duplikat username
-            existing = db.table("users").select("id").eq("username", username).maybe_single().execute()
-            if existing.data:
+            existing = db.table("users").select("id").eq("username", username).execute()
+            if existing.data and len(existing.data) > 0:
                 return jsonify({"success": False, "error": "Username sudah dipakai"})
             password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
             db.table("users").insert({
