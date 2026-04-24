@@ -1,24 +1,30 @@
 import os
+import uuid
+import bcrypt
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from supabase import create_client, Client
 from datetime import datetime, timezone
-import uuid
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "ldr-secret-2024-bucin")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://mafnnqttvkdgqqxczqyt.supabase.co")
-SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hZm5ucXR0dmtkZ3FxeGN6cXl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NzQyMDEsImV4cCI6MjA4NzQ1MDIwMX0.YRh1oWVKnn4tyQNRbcPhlSyvr7V_1LseWN7VjcImb-Y")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hZm5ucXR0dmtkZ3FxeGN6cXl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NzQyMDEsImV4cCI6MjA4NzQ1MDIwMX0.YRh1oWVKnn4tyQNRbcPhlSyvr7V_1LseWN7VjcImb-Y")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_SERVICE_KEY else supabase
+# Selalu pakai service key agar bisa bypass RLS
+db: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY)
+
+# ── Helper ────────────────────────────────────────────────────────────────────
+
+def login_required():
+    return "user_id" not in session
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
-    if "user_id" not in session:
+    if login_required():
         return redirect(url_for("login"))
     return render_template("dashboard.html")
 
@@ -26,35 +32,20 @@ def index():
 def login():
     if request.method == "POST":
         data = request.get_json()
-        email = data.get("email")
-        password = data.get("password")
+        username = data.get("username", "").strip().lower()
+        password = data.get("password", "")
         try:
-            res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-            session["user_id"] = res.user.id
-            session["email"] = res.user.email
-            session["access_token"] = res.session.access_token
-
-            profile = supabase.table("profiles").select("*").eq("user_id", res.user.id).maybe_single().execute()
-            if profile.data:
-                session["name"] = profile.data.get("name", email)
-                session["partner_id"] = profile.data.get("partner_id", "")
-                session["city"] = profile.data.get("city", "")
-                session["timezone"] = profile.data.get("timezone", "Asia/Jakarta")
-            else:
-                # Profile belum ada (email confirmation baru selesai) — buat sekarang
-                pending = session.get("pending_profile", {})
-                supabase_admin.table("profiles").insert({
-                    "user_id": res.user.id,
-                    "name": pending.get("name", email),
-                    "city": pending.get("city", ""),
-                    "timezone": pending.get("timezone", "Asia/Jakarta"),
-                    "email": email
-                }).execute()
-                session["name"] = pending.get("name", email)
-                session["city"] = pending.get("city", "")
-                session["timezone"] = pending.get("timezone", "Asia/Jakarta")
-                session.pop("pending_profile", None)
-
+            res = db.table("users").select("*").eq("username", username).maybe_single().execute()
+            if not res.data:
+                return jsonify({"success": False, "error": "Username tidak ditemukan"})
+            user = res.data
+            if not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
+                return jsonify({"success": False, "error": "Password salah"})
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            session["name"] = user.get("name", username)
+            session["city"] = user.get("city", "")
+            session["timezone"] = user.get("timezone", "Asia/Jakarta")
             return jsonify({"success": True})
         except Exception as e:
             return jsonify({"success": False, "error": str(e)})
@@ -64,20 +55,30 @@ def login():
 def register():
     if request.method == "POST":
         data = request.get_json()
-        email = data.get("email")
-        password = data.get("password")
-        name = data.get("name")
-        city = data.get("city")
+        username = data.get("username", "").strip().lower()
+        password = data.get("password", "")
+        name = data.get("name", "").strip()
+        city = data.get("city", "").strip()
         timezone_val = data.get("timezone", "Asia/Jakarta")
+        if not username or not password or not name:
+            return jsonify({"success": False, "error": "Lengkapi semua kolom"})
+        if len(password) < 6:
+            return jsonify({"success": False, "error": "Password minimal 6 karakter"})
         try:
-            res = supabase.auth.sign_up({"email": email, "password": password})
-            # Simpan data profile di session, insert saat login pertama
-            session["pending_profile"] = {
+            # Cek duplikat username
+            existing = db.table("users").select("id").eq("username", username).maybe_single().execute()
+            if existing.data:
+                return jsonify({"success": False, "error": "Username sudah dipakai"})
+            password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+            db.table("users").insert({
+                "id": str(uuid.uuid4()),
+                "username": username,
+                "password_hash": password_hash,
                 "name": name,
                 "city": city,
                 "timezone": timezone_val,
-                "email": email
-            }
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }).execute()
             return jsonify({"success": True})
         except Exception as e:
             return jsonify({"success": False, "error": str(e)})
@@ -92,47 +93,43 @@ def logout():
 
 @app.route("/settings", methods=["GET"])
 def settings():
-    if "user_id" not in session:
+    if login_required():
         return redirect(url_for("login"))
     return render_template("settings.html")
 
 @app.route("/api/settings", methods=["GET", "POST"])
 def api_settings():
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     user_id = session["user_id"]
 
     if request.method == "GET":
-        profile = supabase.table("profiles").select("*").eq("user_id", user_id).single().execute()
-        couple = supabase.table("couple_settings").select("*").eq("user_id", user_id).maybe_single().execute()
-        return jsonify({
-            "profile": profile.data or {},
-            "couple": couple.data or {}
-        })
+        user = db.table("users").select("id,username,name,city,timezone").eq("id", user_id).single().execute()
+        couple = db.table("couple_settings").select("*").eq("user_id", user_id).maybe_single().execute()
+        return jsonify({"profile": user.data or {}, "couple": couple.data or {}})
 
     data = request.get_json()
-    # Update profile
-    supabase.table("profiles").update({
+    db.table("users").update({
         "name": data.get("name"),
         "city": data.get("city"),
         "timezone": data.get("timezone"),
-    }).eq("user_id", user_id).execute()
+    }).eq("id", user_id).execute()
 
-    # Upsert couple settings
-    existing = supabase.table("couple_settings").select("id").eq("user_id", user_id).maybe_single().execute()
+    existing = db.table("couple_settings").select("id").eq("user_id", user_id).maybe_single().execute()
     couple_data = {
         "user_id": user_id,
-        "partner_email": data.get("partner_email", ""),
-        "meet_date": data.get("meet_date", ""),
-        "anniversary_date": data.get("anniversary_date", ""),
+        "partner_username": data.get("partner_username", ""),
+        "meet_date": data.get("meet_date") or None,
+        "anniversary_date": data.get("anniversary_date") or None,
         "distance_km": data.get("distance_km", 0),
         "partner_city": data.get("partner_city", ""),
         "partner_timezone": data.get("partner_timezone", "Asia/Jakarta"),
     }
     if existing.data:
-        supabase.table("couple_settings").update(couple_data).eq("user_id", user_id).execute()
+        db.table("couple_settings").update(couple_data).eq("user_id", user_id).execute()
     else:
-        supabase.table("couple_settings").insert(couple_data).execute()
+        couple_data["id"] = str(uuid.uuid4())
+        db.table("couple_settings").insert(couple_data).execute()
 
     session["name"] = data.get("name")
     session["city"] = data.get("city")
@@ -143,27 +140,26 @@ def api_settings():
 
 @app.route("/api/dashboard")
 def api_dashboard():
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     user_id = session["user_id"]
 
-    couple = supabase.table("couple_settings").select("*").eq("user_id", user_id).maybe_single().execute()
-    mood_me = supabase.table("moods").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(1).maybe_single().execute()
+    couple = db.table("couple_settings").select("*").eq("user_id", user_id).maybe_single().execute()
+    mood_me = db.table("moods").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(1).maybe_single().execute()
+    my_status = db.table("statuses").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(1).maybe_single().execute()
 
     partner_mood = None
     partner_status = None
     partner_profile = None
 
-    if couple.data and couple.data.get("partner_email"):
-        partner = supabase.table("profiles").select("*").eq("email", couple.data["partner_email"]).maybe_single().execute()
+    if couple.data and couple.data.get("partner_username"):
+        partner = db.table("users").select("id,name,city,timezone,username").eq("username", couple.data["partner_username"]).maybe_single().execute()
         if partner.data:
             partner_profile = partner.data
-            pm = supabase.table("moods").select("*").eq("user_id", partner.data["user_id"]).order("created_at", desc=True).limit(1).maybe_single().execute()
+            pm = db.table("moods").select("*").eq("user_id", partner.data["id"]).order("created_at", desc=True).limit(1).maybe_single().execute()
             partner_mood = pm.data
-            ps = supabase.table("statuses").select("*").eq("user_id", partner.data["user_id"]).order("created_at", desc=True).limit(1).maybe_single().execute()
+            ps = db.table("statuses").select("*").eq("user_id", partner.data["id"]).order("created_at", desc=True).limit(1).maybe_single().execute()
             partner_status = ps.data
-
-    my_status = supabase.table("statuses").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(1).maybe_single().execute()
 
     return jsonify({
         "couple": couple.data or {},
@@ -181,10 +177,11 @@ def api_dashboard():
 
 @app.route("/api/mood", methods=["POST"])
 def api_mood():
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json()
-    supabase.table("moods").insert({
+    db.table("moods").insert({
+        "id": str(uuid.uuid4()),
         "user_id": session["user_id"],
         "mood": data.get("mood"),
         "note": data.get("note", ""),
@@ -196,10 +193,11 @@ def api_mood():
 
 @app.route("/api/status", methods=["POST"])
 def api_status():
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json()
-    supabase.table("statuses").insert({
+    db.table("statuses").insert({
+        "id": str(uuid.uuid4()),
         "user_id": session["user_id"],
         "status": data.get("status"),
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -210,55 +208,52 @@ def api_status():
 
 @app.route("/letters")
 def letters():
-    if "user_id" not in session:
+    if login_required():
         return redirect(url_for("login"))
     return render_template("letters.html")
 
 @app.route("/api/letters", methods=["GET"])
 def api_letters_get():
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     user_id = session["user_id"]
     now = datetime.now(timezone.utc).isoformat()
+    my_letters = db.table("letters").select("*").eq("sender_id", user_id).order("created_at", desc=True).execute()
 
-    my_letters = supabase.table("letters").select("*").eq("sender_id", user_id).order("created_at", desc=True).execute()
-
-    # Get partner id
-    couple = supabase.table("couple_settings").select("partner_email").eq("user_id", user_id).maybe_single().execute()
+    couple = db.table("couple_settings").select("partner_username").eq("user_id", user_id).maybe_single().execute()
     received = []
-    if couple.data and couple.data.get("partner_email"):
-        partner = supabase.table("profiles").select("user_id").eq("email", couple.data["partner_email"]).maybe_single().execute()
+    if couple.data and couple.data.get("partner_username"):
+        partner = db.table("users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
         if partner.data:
-            partner_user_id = partner.data["user_id"]
-            received_raw = supabase.table("letters").select("*").eq("sender_id", partner_user_id).eq("recipient_id", user_id).order("created_at", desc=True).execute()
+            received_raw = db.table("letters").select("*").eq("sender_id", partner.data["id"]).eq("recipient_id", user_id).order("created_at", desc=True).execute()
             for letter in (received_raw.data or []):
                 unlock = letter.get("unlock_at")
-                letter["locked"] = unlock and unlock > now
+                letter["locked"] = bool(unlock and unlock > now)
                 received.append(letter)
 
     return jsonify({"sent": my_letters.data or [], "received": received})
 
 @app.route("/api/letters", methods=["POST"])
 def api_letters_post():
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json()
     user_id = session["user_id"]
 
-    couple = supabase.table("couple_settings").select("partner_email").eq("user_id", user_id).maybe_single().execute()
+    couple = db.table("couple_settings").select("partner_username").eq("user_id", user_id).maybe_single().execute()
     recipient_id = None
-    if couple.data and couple.data.get("partner_email"):
-        partner = supabase.table("profiles").select("user_id").eq("email", couple.data["partner_email"]).maybe_single().execute()
+    if couple.data and couple.data.get("partner_username"):
+        partner = db.table("users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
         if partner.data:
-            recipient_id = partner.data["user_id"]
+            recipient_id = partner.data["id"]
 
-    supabase.table("letters").insert({
+    db.table("letters").insert({
         "id": str(uuid.uuid4()),
         "sender_id": user_id,
         "recipient_id": recipient_id,
         "title": data.get("title", "Surat Untukmu"),
         "content": data.get("content"),
-        "unlock_at": data.get("unlock_at"),
+        "unlock_at": data.get("unlock_at") or None,
         "created_at": datetime.now(timezone.utc).isoformat()
     }).execute()
     return jsonify({"success": True})
@@ -267,32 +262,33 @@ def api_letters_post():
 
 @app.route("/journal")
 def journal():
-    if "user_id" not in session:
+    if login_required():
         return redirect(url_for("login"))
     return render_template("journal.html")
 
 @app.route("/api/journal", methods=["GET"])
 def api_journal_get():
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     user_id = session["user_id"]
 
-    couple = supabase.table("couple_settings").select("partner_email").eq("user_id", user_id).maybe_single().execute()
+    couple = db.table("couple_settings").select("partner_username").eq("user_id", user_id).maybe_single().execute()
     partner_id = None
-    if couple.data and couple.data.get("partner_email"):
-        partner = supabase.table("profiles").select("user_id, name").eq("email", couple.data["partner_email"]).maybe_single().execute()
+    if couple.data and couple.data.get("partner_username"):
+        partner = db.table("users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
         if partner.data:
-            partner_id = partner.data["user_id"]
+            partner_id = partner.data["id"]
 
-    entries = supabase.table("journal").select("*").in_("user_id", [user_id] + ([partner_id] if partner_id else [])).order("created_at", desc=True).execute()
+    ids = [user_id] + ([partner_id] if partner_id else [])
+    entries = db.table("journal").select("*").in_("user_id", ids).order("created_at", desc=True).execute()
     return jsonify({"entries": entries.data or [], "my_id": user_id})
 
 @app.route("/api/journal", methods=["POST"])
 def api_journal_post():
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json()
-    supabase.table("journal").insert({
+    db.table("journal").insert({
         "id": str(uuid.uuid4()),
         "user_id": session["user_id"],
         "author_name": session.get("name", ""),
@@ -305,45 +301,46 @@ def api_journal_post():
 
 @app.route("/api/journal/<entry_id>/react", methods=["POST"])
 def api_journal_react(entry_id):
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json()
-    entry = supabase.table("journal").select("reactions").eq("id", entry_id).single().execute()
+    entry = db.table("journal").select("reactions").eq("id", entry_id).single().execute()
     reactions = entry.data.get("reactions") or []
     reactions.append({"user_id": session["user_id"], "emoji": data.get("emoji", "❤️")})
-    supabase.table("journal").update({"reactions": reactions}).eq("id", entry_id).execute()
+    db.table("journal").update({"reactions": reactions}).eq("id", entry_id).execute()
     return jsonify({"success": True})
 
 # ── Memories ──────────────────────────────────────────────────────────────────
 
 @app.route("/memories")
 def memories():
-    if "user_id" not in session:
+    if login_required():
         return redirect(url_for("login"))
     return render_template("memories.html")
 
 @app.route("/api/memories", methods=["GET"])
 def api_memories_get():
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     user_id = session["user_id"]
 
-    couple = supabase.table("couple_settings").select("partner_email").eq("user_id", user_id).maybe_single().execute()
+    couple = db.table("couple_settings").select("partner_username").eq("user_id", user_id).maybe_single().execute()
     partner_id = None
-    if couple.data and couple.data.get("partner_email"):
-        partner = supabase.table("profiles").select("user_id").eq("email", couple.data["partner_email"]).maybe_single().execute()
+    if couple.data and couple.data.get("partner_username"):
+        partner = db.table("users").select("id").eq("username", couple.data["partner_username"]).maybe_single().execute()
         if partner.data:
-            partner_id = partner.data["user_id"]
+            partner_id = partner.data["id"]
 
-    memories = supabase.table("memories").select("*").in_("user_id", [user_id] + ([partner_id] if partner_id else [])).order("created_at", desc=True).execute()
-    return jsonify({"memories": memories.data or []})
+    ids = [user_id] + ([partner_id] if partner_id else [])
+    mems = db.table("memories").select("*").in_("user_id", ids).order("created_at", desc=True).execute()
+    return jsonify({"memories": mems.data or []})
 
 @app.route("/api/memories", methods=["POST"])
 def api_memories_post():
-    if "user_id" not in session:
+    if login_required():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json()
-    supabase.table("memories").insert({
+    db.table("memories").insert({
         "id": str(uuid.uuid4()),
         "user_id": session["user_id"],
         "author_name": session.get("name", ""),
