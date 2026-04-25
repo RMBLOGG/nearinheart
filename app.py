@@ -171,7 +171,7 @@ def api_dashboard():
         "my_name": session.get("name", ""),
         "my_city": session.get("city", ""),
         "my_timezone": session.get("timezone", "Asia/Jakarta"),
-        "partner_timezone": partner_profile.get("timezone", "Asia/Jakarta") if partner_profile else (couple.data or {}).get("partner_timezone", "Asia/Jakarta"),
+        "partner_timezone": (couple.data or {}).get("partner_timezone") or (partner_profile.get("timezone") if partner_profile else None) or "Asia/Jakarta",
     })
 
 # ── Mood ──────────────────────────────────────────────────────────────────────
