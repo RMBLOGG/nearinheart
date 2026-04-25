@@ -406,8 +406,9 @@ document.getElementById('cdModal').addEventListener('click', function(e) {
   if(e.target === this) closeModal('cdModal');
 });
 
-loadDashboard();
-updateClocks();
-setInterval(updateClocks, 1000);
+loadDashboard().then(() => {
+  updateClocks();
+  setInterval(updateClocks, 1000);
+});
 </script>
 {% endblock %}
