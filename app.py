@@ -104,9 +104,9 @@ def api_settings():
     user_id = session["user_id"]
 
     if request.method == "GET":
-        user = db.table("app_users").select("id,username,name,city,timezone").eq("id", user_id).single().execute()
-        couple = db.table("couple_settings").select("*").eq("user_id", user_id).maybe_single().execute()
-        return jsonify({"profile": user.data or {}, "couple": couple.data or {}})
+        user = db.table("app_users").select("id,username,name,city,timezone").eq("id", user_id).execute()
+        couple = db.table("couple_settings").select("*").eq("user_id", user_id).execute()
+        return jsonify({"profile": user.data[0] if user.data else {}, "couple": couple.data[0] if couple.data else {}})
 
     data = request.get_json()
     db.table("app_users").update({
@@ -115,7 +115,7 @@ def api_settings():
         "timezone": data.get("timezone"),
     }).eq("id", user_id).execute()
 
-    existing = db.table("couple_settings").select("id").eq("user_id", user_id).maybe_single().execute()
+    existing = db.table("couple_settings").select("id").eq("user_id", user_id).execute()
     couple_data = {
         "user_id": user_id,
         "partner_username": data.get("partner_username", ""),
@@ -125,7 +125,7 @@ def api_settings():
         "partner_city": data.get("partner_city", ""),
         "partner_timezone": data.get("partner_timezone", "Asia/Jakarta"),
     }
-    if existing.data:
+    if existing.data and len(existing.data) > 0:
         db.table("couple_settings").update(couple_data).eq("user_id", user_id).execute()
     else:
         couple_data["id"] = str(uuid.uuid4())
