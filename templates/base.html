@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}Dekat di Hati 💌{% endblock %}</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=Lora:ital,wght@0,400;0,500;1,400&family=Nunito:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -50,50 +51,79 @@
       100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
     }
 
-    /* ── Nav ── */
-    nav {
+    /* ── Top brand bar ── */
+    .top-bar {
       position: fixed; top: 0; left: 0; right: 0;
       z-index: 100;
       background: rgba(253,246,238,0.92);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(201,116,122,0.15);
-      padding: 0 2rem;
-      height: 64px;
+      padding: 0 1.2rem;
+      height: 52px;
       display: flex; align-items: center; justify-content: space-between;
     }
     .nav-brand {
       font-family: 'Playfair Display', serif;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       color: var(--wine);
       font-style: italic;
       text-decoration: none;
       letter-spacing: 0.02em;
     }
     .nav-brand span { color: var(--rose); }
-    .nav-links { display: flex; gap: 0.25rem; align-items: center; }
-    .nav-links a {
+
+    /* ── Bottom Nav ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(253,246,238,0.96);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(201,116,122,0.15);
+      height: 64px;
+      display: flex; align-items: stretch;
+      box-shadow: 0 -4px 20px rgba(107,45,62,0.08);
+    }
+    .bottom-nav a {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
       text-decoration: none;
       color: var(--muted);
-      font-size: 0.82rem;
-      font-weight: 500;
-      padding: 0.4rem 0.85rem;
-      border-radius: 20px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      gap: 4px;
       transition: all 0.2s;
-      letter-spacing: 0.03em;
+      position: relative;
     }
-    .nav-links a:hover, .nav-links a.active {
-      color: var(--wine);
-      background: rgba(201,116,122,0.1);
+    .bottom-nav a i {
+      font-size: 1.2rem;
+      transition: all 0.2s;
     }
-    .nav-logout {
-      font-size: 0.78rem !important;
-      color: var(--muted) !important;
-      opacity: 0.7;
+    .bottom-nav a:hover,
+    .bottom-nav a.active {
+      color: var(--rose-deep);
+    }
+    .bottom-nav a.active i {
+      transform: scale(1.15);
+    }
+    .bottom-nav a.active::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 25%; right: 25%;
+      height: 2.5px;
+      background: linear-gradient(90deg, var(--rose), var(--rose-deep));
+      border-radius: 0 0 4px 4px;
+    }
+    .bottom-nav a.nav-logout {
+      color: var(--muted);
+      opacity: 0.6;
+      font-size: 0.55rem;
     }
 
     /* ── Main wrapper ── */
     main {
-      padding-top: 80px;
+      padding-top: 60px;
+      padding-bottom: 72px;
       min-height: 100vh;
       position: relative;
       z-index: 1;
@@ -213,9 +243,7 @@
     .stagger > *:nth-child(6) { animation-delay: 0.6s; }
 
     @media(max-width: 600px) {
-      nav { padding: 0 1rem; }
-      .nav-links a { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
-      main { padding-top: 72px; }
+      .top-bar { padding: 0 1rem; }
     }
   </style>
   {% block head %}{% endblock %}
@@ -225,19 +253,37 @@
 <!-- Floating petals -->
 <div id="petals"></div>
 
-<nav>
+<div class="top-bar">
   <a href="/" class="nav-brand">Dekat di <span>Hati</span> 💌</a>
   {% if session.get('user_id') %}
-  <div class="nav-links">
-    <a href="/" class="{% if request.endpoint == 'index' %}active{% endif %}">🏠 Beranda</a>
-    <a href="/letters" class="{% if request.endpoint == 'letters' %}active{% endif %}">✉️ Surat</a>
-    <a href="/journal" class="{% if request.endpoint == 'journal' %}active{% endif %}">📖 Diary</a>
-    <a href="/memories" class="{% if request.endpoint == 'memories' %}active{% endif %}">📸 Kenangan</a>
-    <a href="/settings" class="{% if request.endpoint == 'settings' %}active{% endif %}">⚙️</a>
-    <a href="/logout" class="nav-logout">Keluar</a>
-  </div>
+  <a href="/logout" style="font-size:0.78rem;color:var(--muted);text-decoration:none;opacity:0.7;">Keluar</a>
   {% endif %}
+</div>
+
+{% if session.get('user_id') %}
+<nav class="bottom-nav">
+  <a href="/" class="{% if request.endpoint == 'index' %}active{% endif %}">
+    <i class="fa-solid fa-house"></i>
+    <span>Beranda</span>
+  </a>
+  <a href="/letters" class="{% if request.endpoint == 'letters' %}active{% endif %}">
+    <i class="fa-solid fa-envelope"></i>
+    <span>Surat</span>
+  </a>
+  <a href="/journal" class="{% if request.endpoint == 'journal' %}active{% endif %}">
+    <i class="fa-solid fa-book-open"></i>
+    <span>Diary</span>
+  </a>
+  <a href="/memories" class="{% if request.endpoint == 'memories' %}active{% endif %}">
+    <i class="fa-solid fa-camera-retro"></i>
+    <span>Kenangan</span>
+  </a>
+  <a href="/settings" class="{% if request.endpoint == 'settings' %}active{% endif %}">
+    <i class="fa-solid fa-gear"></i>
+    <span>Setelan</span>
+  </a>
 </nav>
+{% endif %}
 
 <main>
   {% block content %}{% endblock %}
