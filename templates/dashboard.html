@@ -276,7 +276,7 @@ async function loadDashboard() {
   const d = await api('/api/dashboard');
   dashData = d;
   myTz = d.my_timezone || 'Asia/Jakarta';
-  partnerTz = d.couple?.partner_timezone || 'Asia/Jakarta';
+  partnerTz = d.partner_timezone || d.couple?.partner_timezone || 'Asia/Jakarta';
 
   // City labels
   document.getElementById('myCity').textContent = d.my_city || 'Kamu';
